@@ -2,12 +2,12 @@
 // @ts-ignore
 
 function MainConfig() {
-  globalThis.uzerID = "12345678-1111-1234-1234-1234567890ab";
+  globalThis.uzerID = "12345678-1111-4234-9234-1234567890ab";
   globalThis.qrexyIP = atob('Y2lwLnRyb25iYW5rLnNpdGU=');
 }
 function WebConfig() {
 	globalThis.ThisVersion = "3.4.2";
-	globalThis.AccessAdvancedConfig = env.ADVANCED_CONFIG_PATH || "config";  
+	globalThis.AccessAdvancedConfig = "config";  
   globalThis.CleanIPDomain = "time.is";
 }
 
@@ -586,7 +586,7 @@ async function AdvancedConfig() {
   </head>
   <body>
   <div class="container">
-  <h1>🗽 Free Internet ${globalThis.ThisVersion} 🐉</h1>
+  <h1>Network Services · Edge Configuration</h1>
   <div class="line help">
  
     <b>Your IP</b> 
@@ -661,16 +661,7 @@ async function AdvancedConfig() {
   <br />
   <textarea id="config"></textarea>
   </div>
-   <div class="line">
-  <h3>Default Subscription:
-  	<button type="button" id="copysub" onclick="copyToClipboard('subscription')">Copy</button>
-    <button type="button" id="qrsub" onclick="openQR('subscription')">QR Code</button>
-  </h3>
-<div class="help">Subscription ${atob('UHJveHlJUA')}: <span style="font-weight:bold;" id="subscriptionpxip">${pxipdomain}</span></div>
-  <span id="subscriptionshow">https://${globalThis.hostName}/${globalThis.AccessSubscription}#${globalThis.CnfgName}</span>
-  <input type="hidden" id="subscription" value="https://${globalThis.hostName}/${globalThis.AccessSubscription}#${globalThis.CnfgName}">
-  </div>
-</details>
+   </details>
 
 
   <details>
@@ -721,9 +712,7 @@ async function AdvancedConfig() {
  </details>
 
 
-  <div class="help">
-    <center><a href="https://github.com/liMilCo/Free-Internet"><img src="https://github.githubassets.com/favicons/favicon.png" style="vertical-align: middle;" /> Free Internet  🐉</a></center>
-  </div>
+  <div class="help"><center>Network Services · Edge Configuration Workspace</center></div>
 
   </div>
 
@@ -733,13 +722,10 @@ async function AdvancedConfig() {
   let defalt_address = "${globalThis.hostName}";
   let defalt_pxip = "${globalThis.CLxIP}";
   let defalt_uuid = "${globalThis.UzKey}";
-
-  let defalt_AcsSub = "${globalThis.AccessSubscription}";                            
   let defalt_CnfgName = "${globalThis.CnfgName}";  
 
   const fpathss = "${globalThis.fpaths}";
   const fpath = fpathss.split(',');              
-  const subpath = 'https://'+defalt_address+'/'+defalt_AcsSub+'#'+defalt_CnfgName; 
   localStorage.getItem('darkMode') === 'enabled' && document.body.classList.add('dark-mode'); 
 var address = document.getElementById("address");
 var custom = document.getElementById("custom");
@@ -808,22 +794,12 @@ function generate(){
     if (pxip.value && pxip.value !== defalt_pxip){                                               
         var pxipath = (btoa(pxip.value.replace(/ /g, ''))).replace(/=/g, '%3D');
     	cpath = fpath[Math.floor(Math.random() * fpath.length)]+"%2F"+pxipath+"%2F%3Fed%3D2048";
-
-        SetSub('https://'+defalt_address+'/'+defalt_AcsSub+'?path='+pxipath+'#'+defalt_CnfgName);  
-        document.getElementById("subscriptionpxip").innerHTML = pxip.value;   
-    }else{
-        SetSub(subpath);
-        document.getElementById("subscriptionpxip").innerHTML = defalt_pxip + " (defalt)";  
     } 
                                                                                    
 
 config.value = atob("dmxlc3M=")+"://"+defalt_uuid+"@"+caddress+":"+cport+"?encryption=none&security=tls"+chost+""+cfingerprint+"&alpn=h2%2Chttp%2F1.1&type=ws"+csni+"&path=%2F"+cpath+"#%F0%9F%90%B2%20"+defalt_CnfgName;
 }
-  const SetSub = (suburl) => {
-    if(!suburl){suburl = subpath;}
-    document.getElementById("subscriptionshow").innerHTML = suburl;
-    document.getElementById("subscription").value = suburl;  
-  } 
+
   const closeQR = () => {
           	 let qrcodeContainer = document.getElementById("qrcode-container");
           	 qrcodeContainer.style.display = "none";
