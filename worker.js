@@ -23,37 +23,37 @@ export default {
 			globalThis.CLxIP = env.PROXYIP || globalThis.qrexyIP;
 
 			if (!isValidUUID(globalThis.UzKey))
-				throw new Error(`First register the UID.`);
+				return new Response('Worker configuration error: UUID must be a valid UUID v4.', { status: 500 });
 
 			const url = new URL(request.url);
 			globalThis.pathName = url.pathname;
+			WebConfig();
 
-			if(globalThis.pathName.startsWith("/url-")){
-				var TnlSecKey = "/url-"+globalThis.UzKey.split('-')[0]+"/";
-					if(globalThis.pathName.startsWith(TnlSecKey)){
-							return await hTnlReq(request, globalThis.pathName.replaceAll(TnlSecKey, ""));
-					}
+			// A valid UUID is required to open the private configuration workspace.
+			if (globalThis.pathName === `/${globalThis.AccessAdvancedConfig}` &&
+			    request.headers.get('Upgrade') !== 'websocket') {
+				globalThis.hostName = request.headers.get('Host') || url.hostname;
+				globalThis.GetPath = url.searchParams.get('path');
+				globalThis.CnfgName = globalThis.hostName.split('.')[0];
+				return await AdvancedConfig();
+			}
+
+			// Keep the landing page informational and public.
+			if (globalThis.pathName === '/' && request.headers.get('Upgrade') !== 'websocket') {
+				return await NetworkServicesHome();
+			}
+
+			if (globalThis.pathName.startsWith("/url-") &&
+			    globalThis.pathName.startsWith("/url-" + globalThis.UzKey.split('-')[0] + "/")) {
+				return await hTnlReq(request, globalThis.pathName.replace("/url-" + globalThis.UzKey.split('-')[0] + "/", ""));
 			}
 
 			const upgradeHeader = request.headers.get('Upgrade');
-			if (!upgradeHeader || upgradeHeader !== 'websocket') {
-
-				WebConfig();
-				globalThis.hostName = request.headers.get('Host') || new URL(request.url).hostname;
-				globalThis.GetPath = new URL(request.url).searchParams.get('path');
-				globalThis.CnfgName = globalThis.hostName.split('.')[0];
-
-				switch (globalThis.pathName) {
-					case '/':
-						return await NetworkServicesHome();
-					case `/${globalThis.AccessAdvancedConfig}`:
-						return await AdvancedConfig();
-					default:
-						return new Response('Not found', { status: 404 });
-				}
-			} else {
+			if (upgradeHeader === 'websocket') {
 				return await vOWSHandler(request);
 			}
+
+			return new Response('Not found', { status: 404 });
 		} catch (err) {
 			return new Response('Request could not be processed.', { status: 400 });
 		}
