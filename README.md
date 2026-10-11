@@ -1,3 +1,61 @@
+* CloudFlare Worker VLESS [🐉](#advanced-config-generator-page)
+* CloudFlare Tunneling Through [🗽](#tunneling-through)
+
+for using this project better to use [**Advanced Mode**](#advanced-mode)
+
+## Default Mode
+
+* in default mode you should set **UUID** at `(Variables and Secrets) On Cloudflare`.
+
+* for access Access to **[Advanced Config Generator]** use:    _your-Worker-Domain.dev_/**UUID**
+* for access Access to [Default Subscription] use    _your-Worker-Domain.dev_/**sub**/**UUID**
+
+
+## Advanced Mode
+
+* **[Default UUID]**
+  * by Generating Default UUID no need for set UUID in (Variables and Secrets)
+
+* **[Access URLs]**
+  * change access to **[Advanced Config Generator]** url
+  * change access to **Subscription** url
+ 
+* **(Variables and Secrets) On Cloudflare**
+  * by default you should use **UUID** to set user-ID in (Variables and Secrets) if you changeing it you should use this new character
+  * like **UUID**, by changeing **PROXYIP** you should use this new character in (Variables and Secrets)
+
+## Fallback Page
+There are 4 different HTML Game imbedded inside project (not load from other URL) it selected randomly based on UUID you choose.
+
+**UUID Sample:** `11111111-1111-1111-1111-111111111111`
+
+## [Advanced Config Generator] Page
+![image](https://github.com/user-attachments/assets/a4f6d6b0-9614-4228-b0fc-0c0b4a70fbb2)
+
+## Tunneling Through
+▶️ **For static IP:** you can use X-UI, Hiddify config or get [free config](https://www.google.com/search?q=free+vless+vmess).
+
+Limitation:
+* ✅ **Supported Protocols:** VLESS, VMESS, and Trojan.
+* ✅ **Supported Transmission:** WebSocket only.
+* 🚫 **IP Addresses NOT Supported:**
+  * Cloudflare does not support using an IP address as the server address.
+  * To use an IP, consider _IP.sslip.io_ as a domain alternative.
+* 🔒 **If using TLS**:
+  * Ensure your domain is correctly pointed to your server and has an active SSL certificate.
+
+![image](https://github.com/user-attachments/assets/519afb34-34e7-4979-8b21-9cc1ed2b1ebf)
+
+## Project View
+![Counter](https://count.getloli.com/@Free-Internet?theme=sketch-1&padding=4)
+
+## Stargazers over time
+[![Stargazers over time](https://starchart.cc/liMilCo/Free-Internet.svg?variant=adaptive)](https://starchart.cc/liMilCo/Free-Internet)
+
+## Thank`s
+1. Thanks to the developers who wrote the [Cloudflare-Workers](https://github.com/topics/cloudflare-workers) core for vless proxy.
+2. Thanks to [BPB Panel](https://github.com/bia-pain-bache/BPB-Worker-Panel) for develop technology and new ideas.
+
 # DNS-Server
 
 > **Fast • Secure • Lightweight • Multi-Upstream DNS-over-HTTPS Server powered by Cloudflare Workers**
@@ -98,23 +156,6 @@ npx wrangler login
 ```bash
 npm run deploy
 ```
-
-Your DNS-over-HTTPS endpoint will be available immediately.
-
----
-
-## Roadmap
-
-* Multiple upstream configuration
-* Health checks
-* Automatic upstream benchmarking
-* Smart load balancing
-* Analytics dashboard
-* Custom DNS filtering
-* Rate limiting
-* Admin configuration page
-
----
 
 ## Contributing
 
