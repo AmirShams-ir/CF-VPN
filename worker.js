@@ -7,7 +7,8 @@ function MainConfig() {
 }
 function WebConfig() {
 	globalThis.ThisVersion = "3.4.2";
-	globalThis.AccessAdvancedConfig = "config";  
+	globalThis.AccessAdvancedConfig = "config";
+  globalThis.fpaths = "js,css,assets,wp-content,themes,app,cdn,jquery,live";
   globalThis.CleanIPDomain = "time.is";
 }
 
