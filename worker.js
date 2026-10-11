@@ -7,7 +7,7 @@ function MainConfig() {
 }
 function WebConfig() {
 	globalThis.ThisVersion = "3.4.2";
-	globalThis.AccessAdvancedConfig = "_AdvancedConfigURL_";  
+	globalThis.AccessAdvancedConfig = env.ADVANCED_CONFIG_PATH || "config";  
   globalThis.CleanIPDomain = "time.is";
 }
 
