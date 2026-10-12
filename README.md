@@ -17,7 +17,7 @@ See [Cloudflare Git integration documentation](https://developers.cloudflare.com
 
 ## About the Deploy button below
 
-The official button is intentionally retained as an **alternative** for users who want Cloudflare to create a new repository copy. Clicking it will create a repository such as `cf-vpn-doh`; it cannot be changed into a direct-deploy button just by editing the URL.
+The official button is intentionally retained as an **alternative** for users who want Cloudflare to create a new repository copy. Clicking it will create a repository such as `CF-VPN`; it cannot be changed into a direct-deploy button just by editing the URL.
 
 [![Deploy to Cloudflare (creates a repository copy)](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/AmirShams-ir/CF-VPN)
 
