@@ -1,3 +1,33 @@
+# CF-VPN + CF-DOH
+
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/AmirShams-ir/CF-VPN)
+
+**One Worker for Cloudflare edge proxy configuration and DNS-over-HTTPS.**
+
+> **Important:** Cloudflare's Deploy button currently requires a **public** GitHub or GitLab repository. This repository is private, so the button will not work for other users until the repository is made public. See [Cloudflare Deploy button documentation](https://developers.cloudflare.com/workers/platform/deploy-buttons/).
+
+## Quick Deploy
+
+1. Click **Deploy to Cloudflare** above and follow Cloudflare's setup flow.
+2. Confirm the project uses `wrangler.toml` and the entry point `index.js`.
+3. In the Worker's **Settings → Variables and Secrets**, add `UUID` with a valid UUID v4 value. Optionally add `PROXYIP`.
+4. Deploy the Worker.
+5. Test DNS-over-HTTPS at `https://YOUR-WORKER.workers.dev/dns-query`.
+
+The unified Worker sends requests to `/dns-query` to the DoH resolver. Other paths are handled by the VPN worker in `worker.js`. The VPN configuration workspace is available at `https://YOUR-WORKER.workers.dev/YOUR-UUID`.
+
+## Manual Deploy
+
+```bash
+git clone https://github.com/AmirShams-ir/CF-VPN.git
+cd CF-VPN
+npm install
+npx wrangler login
+npx wrangler deploy
+```
+
+---
+
 * CloudFlare Worker VLESS [🐉](#advanced-config-generator-page)
 * CloudFlare Tunneling Through [🗽](#tunneling-through)
 
