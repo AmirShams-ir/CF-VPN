@@ -1,168 +1,102 @@
-// SPDX-License-Identifier: 0BSD
+// Unified CF-VPN + Cloudflare DNS-over-HTTPS Worker.
+// DoH is served at /dns-query. All other requests are handled by the VPN worker.
 
-// Tier-1 upstreams
+import vpnWorker from "./worker.js";
+
 const DOH_UPSTREAMS = [
-  'https://security.cloudflare-dns.com/dns-query',
-  'https://dns.google/dns-query',
-  'https://dns.quad9.net/dns-query'
+  "https://security.cloudflare-dns.com/dns-query",
+  "https://dns.google/dns-query",
+  "https://dns.quad9.net/dns-query",
 ];
 
-const DOH_JSON_UPSTREAMS = [
-  'https://security.cloudflare-dns.com/dns-query',
-  'https://dns.google/dns-query',
-  'https://dns.quad9.net/dns-query'
-];
-
-const contype = 'application/dns-message';
-const jsontype = 'application/dns-json';
-
-const path = '';
-const r404 = new Response(null, { status: 404 });
+const DNS_MESSAGE = "application/dns-message";
+const DNS_JSON = "application/dns-json";
+const DOH_PATH = "/dns-query";
 
 export default {
   async fetch(request, env, ctx) {
-    return handleRequest(request);
+    const url = new URL(request.url);
+
+    if (url.pathname === DOH_PATH) {
+      return handleDoH(request, ctx);
+    }
+
+    return vpnWorker.fetch(request, env, ctx);
   },
 };
 
-async function handleRequest(request) {
-
+async function handleDoH(request, ctx) {
   const { method, headers, url } = request;
-  const { searchParams, pathname } = new URL(url);
+  const parsed = new URL(url);
+  const accept = (headers.get("accept") || "").toLowerCase();
+  const contentType = (headers.get("content-type") || "")
+    .split(";")[0]
+    .trim()
+    .toLowerCase();
 
-  if (!pathname.startsWith(path)) {
-    return r404;
+  // DNS wire-format GET: /dns-query?dns=<base64url>
+  if (method === "GET" && parsed.searchParams.has("dns")) {
+    const query = new URLSearchParams();
+    query.set("dns", parsed.searchParams.get("dns"));
+    return raceFetch(query.toString(), DNS_MESSAGE, false, null, ctx);
   }
 
-  // ---------- DNS binary GET ----------
-  if (method === 'GET' && searchParams.has('dns')) {
-
-    const query = '?dns=' + searchParams.get('dns');
-
-    return raceFetchBinary(query);
-
+  // DNS wire-format POST.
+  if (method === "POST" && contentType === DNS_MESSAGE) {
+    const body = await request.arrayBuffer();
+    return raceFetch("", DNS_MESSAGE, true, body, ctx);
   }
 
-  // ---------- DNS binary POST ----------
-  if (method === 'POST' && headers.get('content-type') === contype) {
-
-    const bodyStream = request.body;
-
-    return raceFetchBinary('', bodyStream);
-
+  // DNS JSON API: /dns-query?name=example.com&type=A
+  if (method === "GET" && accept.includes(DNS_JSON)) {
+    return raceFetch(parsed.searchParams.toString(), DNS_JSON, false, null, ctx);
   }
 
-  // ---------- DNS JSON ----------
-  if (method === 'GET' && headers.get('accept') === jsontype) {
-
-    const search = new URL(url).search;
-
-    return raceFetchJSON(search);
-
-  }
-
-  return r404;
+  return new Response("Unsupported DNS request", {
+    status: 400,
+    headers: { "Cache-Control": "no-store" },
+  });
 }
 
-
-// racing for binary DNS
-async function raceFetchBinary(search, bodyStream) {
-
-  const controllers = DOH_UPSTREAMS.map(() => new AbortController());
-
-  return new Promise((resolve, reject) => {
-
-    let finished = false;
-
-    DOH_UPSTREAMS.forEach((upstream, index) => {
-
-      fetch(upstream + search, {
-        method: bodyStream ? 'POST' : 'GET',
-        headers: {
-          'Accept': contype,
-          'Content-Type': contype,
-        },
-        body: bodyStream,
-        signal: controllers[index].signal,
-        keepalive: true,
-        cf: {
-          cacheEverything: true,
-          cacheTtl: 300,
-        }
-      })
-      .then(response => {
-
-        if (!finished && response.ok) {
-
-          finished = true;
-
-          // abort slower upstreams
-          controllers.forEach((c, i) => {
-            if (i !== index) c.abort();
-          });
-
-          resolve(response);
-        }
-
-      })
-      .catch(() => {});
-
-    });
-
-    setTimeout(() => {
-      if (!finished) reject('DNS upstream timeout');
-    }, 2000);
-
+async function raceFetch(search, acceptType, isPost, body, ctx) {
+  const upstreams = DOH_UPSTREAMS.map((base) => {
+    const separator = search ? (base.includes("?") ? "&" : "?") : "";
+    return base + separator + search;
   });
 
-}
-
-
-// racing for JSON DNS
-async function raceFetchJSON(search) {
-
-  const controllers = DOH_JSON_UPSTREAMS.map(() => new AbortController());
-
-  return new Promise((resolve, reject) => {
-
-    let finished = false;
-
-    DOH_JSON_UPSTREAMS.forEach((upstream, index) => {
-
-      fetch(upstream + search, {
-        method: 'GET',
-        headers: {
-          'Accept': jsontype,
-        },
-        signal: controllers[index].signal,
-        keepalive: true,
-        cf: {
-          cacheEverything: true,
-          cacheTtl: 300,
-        }
-      })
-      .then(response => {
-
-        if (!finished && response.ok) {
-
-          finished = true;
-
-          controllers.forEach((c, i) => {
-            if (i !== index) c.abort();
-          });
-
-          resolve(response);
-        }
-
-      })
-      .catch(() => {});
-
+  const attempts = upstreams.map(async (upstream) => {
+    const response = await fetch(upstream, {
+      method: isPost ? "POST" : "GET",
+      headers: {
+        Accept: acceptType,
+        ...(isPost ? { "Content-Type": DNS_MESSAGE } : {}),
+      },
+      ...(isPost ? { body } : {}),
+      signal: AbortSignal.timeout(4500),
     });
+    if (!response.ok) {
+      throw new Error(`DoH upstream returned HTTP ${response.status}`);
+    }
 
-    setTimeout(() => {
-      if (!finished) reject('DNS upstream timeout');
-    }, 2000);
-
+    const responseHeaders = new Headers(response.headers);
+    responseHeaders.set("Cache-Control", "no-store");
+    responseHeaders.set("Access-Control-Allow-Origin", "*");
+    responseHeaders.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    responseHeaders.set("Access-Control-Allow-Headers", "Content-Type, Accept");
+    responseHeaders.set("Content-Type", acceptType);
+    return new Response(response.body, {
+      status: response.status,
+      headers: responseHeaders,
+    });
   });
 
+  // First healthy upstream wins. Promise.any automatically ignores failed upstreams.
+  try {
+    return await Promise.any(attempts);
+  } catch {
+    return new Response("All DNS-over-HTTPS upstreams failed", {
+      status: 502,
+      headers: { "Cache-Control": "no-store" },
+    });
+  }
 }
