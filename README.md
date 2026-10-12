@@ -1,20 +1,27 @@
 # CF-VPN + CF-DOH
 
-[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/AmirShams-ir/CF-VPN)
+> **Important:** The official Cloudflare Deploy button creates a new repository in your GitHub account and deploys from that copy. It does **not** deploy directly from the source repository. Cloudflare currently requires the source repository to be public for this button flow. See [Cloudflare Deploy button documentation](https://developers.cloudflare.com/workers/platform/deploy-buttons/).
+
+## Deploy directly from this repository (recommended)
+
+To deploy without creating a second GitHub repository, use Cloudflare Workers **Git integration / Workers Builds**:
+
+1. Open the [Cloudflare dashboard](https://dash.cloudflare.com/) and go to **Workers & Pages**.
+2. Choose **Create application** / **Create Worker**, then choose **Connect to Git** or **Import a repository** (the wording may vary).
+3. Connect GitHub and select **AmirShams-ir/CF-VPN**.
+4. Set the root directory to the repository root and use `wrangler.toml` with `index.js` as the entry point.
+5. In Worker **Settings → Variables and Secrets**, add `UUID` with a valid UUID v4 value; optionally add `PROXYIP`.
+6. Deploy. Subsequent pushes to the connected branch can trigger automatic deployments.
+
+See [Cloudflare Git integration documentation](https://developers.cloudflare.com/workers/ci-cd/builds/git-integration/).
+
+## About the Deploy button below
+
+The official button is intentionally retained as an **alternative** for users who want Cloudflare to create a new repository copy. Clicking it will create a repository such as `cf-vpn-doh`; it cannot be changed into a direct-deploy button just by editing the URL.
+
+[![Deploy to Cloudflare (creates a repository copy)](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/AmirShams-ir/CF-VPN)
 
 **One Worker for Cloudflare edge proxy configuration and DNS-over-HTTPS.**
-
-> **Important:** Cloudflare's Deploy button currently requires a **public** GitHub or GitLab repository. This repository is private, so the button will not work for other users until the repository is made public. See [Cloudflare Deploy button documentation](https://developers.cloudflare.com/workers/platform/deploy-buttons/).
-
-## Quick Deploy
-
-1. Click **Deploy to Cloudflare** above and follow Cloudflare's setup flow.
-2. Confirm the project uses `wrangler.toml` and the entry point `index.js`.
-3. In the Worker's **Settings → Variables and Secrets**, add `UUID` with a valid UUID v4 value. Optionally add `PROXYIP`.
-4. Deploy the Worker.
-5. Test DNS-over-HTTPS at `https://YOUR-WORKER.workers.dev/dns-query`.
-
-The unified Worker sends requests to `/dns-query` to the DoH resolver. Other paths are handled by the VPN worker in `worker.js`. The VPN configuration workspace is available at `https://YOUR-WORKER.workers.dev/YOUR-UUID`.
 
 ## Manual Deploy
 
