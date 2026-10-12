@@ -18,38 +18,48 @@ export default {
     const url = new URL(request.url);
 
     if (url.pathname === DOH_PATH) {
-      return handleDoH(request, ctx);
+      return handleDoH(request);
     }
 
     return vpnWorker.fetch(request, env, ctx);
   },
 };
 
-async function handleDoH(request, ctx) {
-  const { method, headers, url } = request;
-  const parsed = new URL(url);
+async function handleDoH(request) {
+  const { method, headers } = request;
+  const parsed = new URL(request.url);
   const accept = (headers.get("accept") || "").toLowerCase();
   const contentType = (headers.get("content-type") || "")
     .split(";")[0]
     .trim()
     .toLowerCase();
 
+  if (method === "OPTIONS") {
+    return new Response(null, {
+      status: 204,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Accept",
+        "Access-Control-Max-Age": "86400",
+      },
+    });
+  }
+
   // DNS wire-format GET: /dns-query?dns=<base64url>
   if (method === "GET" && parsed.searchParams.has("dns")) {
-    const query = new URLSearchParams();
-    query.set("dns", parsed.searchParams.get("dns"));
-    return raceFetch(query.toString(), DNS_MESSAGE, false, null, ctx);
+    return raceFetch(parsed.searchParams.toString(), DNS_MESSAGE, false, null);
   }
 
   // DNS wire-format POST.
   if (method === "POST" && contentType === DNS_MESSAGE) {
     const body = await request.arrayBuffer();
-    return raceFetch("", DNS_MESSAGE, true, body, ctx);
+    return raceFetch("", DNS_MESSAGE, true, body);
   }
 
   // DNS JSON API: /dns-query?name=example.com&type=A
   if (method === "GET" && accept.includes(DNS_JSON)) {
-    return raceFetch(parsed.searchParams.toString(), DNS_JSON, false, null, ctx);
+    return raceFetch(parsed.searchParams.toString(), DNS_JSON, false, null);
   }
 
   return new Response("Unsupported DNS request", {
@@ -58,14 +68,11 @@ async function handleDoH(request, ctx) {
   });
 }
 
-async function raceFetch(search, acceptType, isPost, body, ctx) {
-  const upstreams = DOH_UPSTREAMS.map((base) => {
-    const separator = search ? (base.includes("?") ? "&" : "?") : "";
-    return base + separator + search;
-  });
-
-  const attempts = upstreams.map(async (upstream) => {
-    const response = await fetch(upstream, {
+async function raceFetch(search, acceptType, isPost, body) {
+  const attempts = DOH_UPSTREAMS.map(async (base) => {
+    // Upstream paths already contain /dns-query; append the client's query string.
+    const upstreamUrl = search ? `${base}?${search}` : base;
+    const response = await fetch(upstreamUrl, {
       method: isPost ? "POST" : "GET",
       headers: {
         Accept: acceptType,
@@ -74,6 +81,7 @@ async function raceFetch(search, acceptType, isPost, body, ctx) {
       ...(isPost ? { body } : {}),
       signal: AbortSignal.timeout(4500),
     });
+
     if (!response.ok) {
       throw new Error(`DoH upstream returned HTTP ${response.status}`);
     }
@@ -84,13 +92,14 @@ async function raceFetch(search, acceptType, isPost, body, ctx) {
     responseHeaders.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
     responseHeaders.set("Access-Control-Allow-Headers", "Content-Type, Accept");
     responseHeaders.set("Content-Type", acceptType);
+
     return new Response(response.body, {
       status: response.status,
       headers: responseHeaders,
     });
   });
 
-  // First healthy upstream wins. Promise.any automatically ignores failed upstreams.
+  // First healthy upstream wins; failures automatically fall through.
   try {
     return await Promise.any(attempts);
   } catch {
