@@ -2,7 +2,7 @@
 // @ts-ignore
 
 function MainConfig() {
-  globalThis.uzerID = "12345678-1111-4234-9234-1234567890ab";
+  globalThis.uzerID = "12345678-1234-1234-1234567890ab";
   globalThis.qrexyIP = atob('Y2lwLnRyb25iYW5rLnNpdGU=');
 }
 function WebConfig() {
@@ -1086,7 +1086,7 @@ async function NetworkServicesHome() {
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px;padding:20px 0 60px}.card{background:linear-gradient(150deg,#142239,var(--panel));border:1px solid var(--line);border-radius:16px;padding:24px}.num{color:var(--accent);font-weight:800;font-size:.84rem}.card h2{font-size:1.2rem;margin:10px 0}.card p{color:var(--muted);margin:0}.foot{border-top:1px solid var(--line);padding:22px 0 36px;color:var(--muted);font-size:.9rem;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
 </style></head><body><div class="wrap">
 <header class="nav"><div class="brand">EDGE<span>/</span>NETWORK</div><div class="pill">Network engineering services</div></header>
-<main><section class="hero"><div class="eyebrow">Connectivity • Architecture • Tooling</div><h1>Network systems, thoughtfully engineered.</h1><p>We build practical network configuration tools and edge-connectivity workflows, with an emphasis on clear parameters, reproducible profiles, and maintainable infrastructure.</p><div class="actions"><a class="btn primary" href="/${globalThis.AccessAdvancedConfig}">Open Configuration Workspace</a><a class="btn secondary" href="#services">Explore services</a></div></section>
+<main><section class="hero"><div class="eyebrow">Connectivity • Architecture • Tooling</div><h1>Network systems, thoughtfully engineered.</h1><p>We build practical network configuration tools and edge-connectivity workflows, with an emphasis on clear parameters, reproducible profiles, and maintainable infrastructure.</p><div class="actions"><a class="btn primary" href="#">Open Configuration Workspace</a><a class="btn secondary" href="#">Explore services</a></div></section>
 <section id="services" class="grid"><article class="card"><div class="num">01 / DESIGN</div><h2>Edge Connectivity</h2><p>Architecture and configuration design for modern edge and serverless connectivity.</p></article>
 <article class="card"><div class="num">02 / CONFIGURATION</div><h2>Protocol Profiles</h2><p>Parameter-driven configuration workflows with structured, repeatable outputs.</p></article>
 <article class="card"><div class="num">03 / ENGINEERING</div><h2>Network Tooling</h2><p>Utilities for organizing connection settings and preparing profiles for external testing.</p></article></section></main>
