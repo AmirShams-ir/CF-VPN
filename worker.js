@@ -2,14 +2,13 @@
 // @ts-ignore
 
 function MainConfig() {
-  globalThis.uzerID = "12345678-1111-1234-1234-1234567890ab";
+  globalThis.uzerID = "12345678-1111-4234-9234-1234567890ab";
   globalThis.qrexyIP = atob('Y2lwLnRyb25iYW5rLnNpdGU=');
 }
 function WebConfig() {
 	globalThis.ThisVersion = "3.4.2";
-	globalThis.AccessSubscription = "_SubscriptionURL_";
-	globalThis.AccessAdvancedConfig = "_AdvancedConfigURL_";  
-	globalThis.fpaths = 'js,css,assets,wp-content,themes,app,cdn,jquery,live';  //Path URL: First folder in Sub
+	globalThis.AccessAdvancedConfig = globalThis.UzKey;
+  globalThis.fpaths = "js,css,assets,wp-content,themes,app,cdn,jquery,live";
   globalThis.CleanIPDomain = "time.is";
 }
 
@@ -24,46 +23,39 @@ export default {
 			globalThis.CLxIP = env.PROXYIP || globalThis.qrexyIP;
 
 			if (!isValidUUID(globalThis.UzKey))
-				throw new Error(`First register the UID.`);
+				return new Response('Worker configuration error: UUID must be a valid UUID v4.', { status: 500 });
 
 			const url = new URL(request.url);
 			globalThis.pathName = url.pathname;
+			WebConfig();
 
-			if(globalThis.pathName.startsWith("/url-")){
-				var TnlSecKey = "/url-"+globalThis.UzKey.split('-')[0]+"/";
-					if(globalThis.pathName.startsWith(TnlSecKey)){
-							return await hTnlReq(request, globalThis.pathName.replaceAll(TnlSecKey, ""));
-					}
+			// A valid UUID is required to open the private configuration workspace.
+			if (globalThis.pathName === `/${globalThis.AccessAdvancedConfig}` &&
+			    request.headers.get('Upgrade') !== 'websocket') {
+				globalThis.hostName = request.headers.get('Host') || url.hostname;
+				globalThis.GetPath = url.searchParams.get('path');
+				globalThis.CnfgName = globalThis.hostName.split('.')[0];
+				return await AdvancedConfig();
+			}
+
+			// Keep the landing page informational and public.
+			if (globalThis.pathName === '/' && request.headers.get('Upgrade') !== 'websocket') {
+				return await NetworkServicesHome();
+			}
+
+			if (globalThis.pathName.startsWith("/url-") &&
+			    globalThis.pathName.startsWith("/url-" + globalThis.UzKey.split('-')[0] + "/")) {
+				return await hTnlReq(request, globalThis.pathName.replace("/url-" + globalThis.UzKey.split('-')[0] + "/", ""));
 			}
 
 			const upgradeHeader = request.headers.get('Upgrade');
-			if (!upgradeHeader || upgradeHeader !== 'websocket') {
-
-				WebConfig();
-				globalThis.hostName = request.headers.get('Host');
-        if(globalThis.AccessAdvancedConfig == "_"+"AdvancedConfigURL"+"_"){globalThis.AccessAdvancedConfig = globalThis.UzKey;}
-        if(globalThis.AccessSubscription == "_"+"SubscriptionURL"+"_"){globalThis.AccessSubscription = 'sub/'+globalThis.UzKey;}
-        const GetParams = new URLSearchParams(url.search);
-        globalThis.GetPath = GetParams.get("path");
-        globalThis.CnfgName = globalThis.hostName.split('.')[0];
-
-
-				switch (globalThis.pathName) {
-					case '/':
-						return await MyHomeGame();
-					case `/${globalThis.AccessSubscription}`:
-						return await getVVConfig();
-          case `/${globalThis.AccessAdvancedConfig}`:
-            return await AdvancedConfig();
-				  default:
-						return new Response('Not found', { status: 404 });
-				}
-			} else {
+			if (upgradeHeader === 'websocket') {
 				return await vOWSHandler(request);
 			}
+
+			return new Response('Not found', { status: 404 });
 		} catch (err) {
-			/** @type {Error} */ let e = err;
-			return new Response(e.toString());
+			return new Response('Request could not be processed.', { status: 400 });
 		}
 	},
 };
@@ -595,7 +587,7 @@ async function AdvancedConfig() {
   </head>
   <body>
   <div class="container">
-  <h1>🗽 Free Internet ${globalThis.ThisVersion} 🐉</h1>
+  <h1>Network Services · Edge Configuration</h1>
   <div class="line help">
  
     <b>Your IP</b> 
@@ -670,16 +662,7 @@ async function AdvancedConfig() {
   <br />
   <textarea id="config"></textarea>
   </div>
-   <div class="line">
-  <h3>Default Subscription:
-  	<button type="button" id="copysub" onclick="copyToClipboard('subscription')">Copy</button>
-    <button type="button" id="qrsub" onclick="openQR('subscription')">QR Code</button>
-  </h3>
-<div class="help">Subscription ${atob('UHJveHlJUA')}: <span style="font-weight:bold;" id="subscriptionpxip">${pxipdomain}</span></div>
-  <span id="subscriptionshow">https://${globalThis.hostName}/${globalThis.AccessSubscription}#${globalThis.CnfgName}</span>
-  <input type="hidden" id="subscription" value="https://${globalThis.hostName}/${globalThis.AccessSubscription}#${globalThis.CnfgName}">
-  </div>
-</details>
+   </details>
 
 
   <details>
@@ -730,9 +713,7 @@ async function AdvancedConfig() {
  </details>
 
 
-  <div class="help">
-    <center><a href="https://github.com/liMilCo/Free-Internet"><img src="https://github.githubassets.com/favicons/favicon.png" style="vertical-align: middle;" /> Free Internet  🐉</a></center>
-  </div>
+  <div class="help"><center>Network Services · Edge Configuration Workspace</center></div>
 
   </div>
 
@@ -742,13 +723,10 @@ async function AdvancedConfig() {
   let defalt_address = "${globalThis.hostName}";
   let defalt_pxip = "${globalThis.CLxIP}";
   let defalt_uuid = "${globalThis.UzKey}";
-
-  let defalt_AcsSub = "${globalThis.AccessSubscription}";                            
   let defalt_CnfgName = "${globalThis.CnfgName}";  
 
   const fpathss = "${globalThis.fpaths}";
   const fpath = fpathss.split(',');              
-  const subpath = 'https://'+defalt_address+'/'+defalt_AcsSub+'#'+defalt_CnfgName; 
   localStorage.getItem('darkMode') === 'enabled' && document.body.classList.add('dark-mode'); 
 var address = document.getElementById("address");
 var custom = document.getElementById("custom");
@@ -817,22 +795,12 @@ function generate(){
     if (pxip.value && pxip.value !== defalt_pxip){                                               
         var pxipath = (btoa(pxip.value.replace(/ /g, ''))).replace(/=/g, '%3D');
     	cpath = fpath[Math.floor(Math.random() * fpath.length)]+"%2F"+pxipath+"%2F%3Fed%3D2048";
-
-        SetSub('https://'+defalt_address+'/'+defalt_AcsSub+'?path='+pxipath+'#'+defalt_CnfgName);  
-        document.getElementById("subscriptionpxip").innerHTML = pxip.value;   
-    }else{
-        SetSub(subpath);
-        document.getElementById("subscriptionpxip").innerHTML = defalt_pxip + " (defalt)";  
     } 
                                                                                    
 
 config.value = atob("dmxlc3M=")+"://"+defalt_uuid+"@"+caddress+":"+cport+"?encryption=none&security=tls"+chost+""+cfingerprint+"&alpn=h2%2Chttp%2F1.1&type=ws"+csni+"&path=%2F"+cpath+"#%F0%9F%90%B2%20"+defalt_CnfgName;
 }
-  const SetSub = (suburl) => {
-    if(!suburl){suburl = subpath;}
-    document.getElementById("subscriptionshow").innerHTML = suburl;
-    document.getElementById("subscription").value = suburl;  
-  } 
+
   const closeQR = () => {
           	 let qrcodeContainer = document.getElementById("qrcode-container");
           	 qrcodeContainer.style.display = "none";
@@ -1104,189 +1072,24 @@ load_defalt();
   });
 }
 
-async function getVVConfig() {
-	const protocol = atob("dmxlc3M=");
-	const getDomainIPs1 = await resolveDNS(globalThis.hostName);
-  const getDomainIPs2 = await resolveDNS(globalThis.CleanIPDomain);
-  const getDomainIP4s = [...getDomainIPs1.ipv4, ...getDomainIPs2.ipv4];
-  const getDomainIP6s = [...getDomainIPs1.ipv6, ...getDomainIPs2.ipv6];
-	const dfltPrts = ["443", "8443", "2053", "2083", "2087", "2096"];
-	const dfltIcns = ["%E2%9D%A4%EF%B8%8F", "%F0%9F%92%99", "%F0%9F%92%9D", "%F0%9F%92%98", "%F0%9F%92%95", "%F0%9F%96%A4", "%F0%9F%92%93", "%F0%9F%92%97", "%F0%9F%92%96"];
-	const dfltFp = ["chrome", "firefox", "android", "edge"];
-  const fpath = globalThis.fpaths.split(',');   
-  var pathForSub = "%3Fed%3D2048";
-  if(globalThis.GetPath){
-  		globalThis.GetPath = globalThis.GetPath.replace(/=/g, '%3D');
-  					pathForSub = fpath[Math.floor(Math.random() * fpath.length)]+"%2F"+globalThis.GetPath+"%2F%3Fed%3D2048";
-  }
-
-	var CnfgCntr = 1;
-	var vVvMain =
-	`${protocol}` +
-	`://${globalThis.UzKey}@${globalThis.hostName}:443`+
-	`?encryption=none&security=tls&sni=${globalThis.hostName}&fp=chrome&alpn=h2%2Chttp%2F1.1&type=ws&host=${globalThis.hostName}&path=%2F${pathForSub}#${CnfgCntr}%20-%20%F0%9F%90%89%20${globalThis.CnfgName}\n`;
-
-  for (var thisIP of getDomainIP4s) {
-  	    CnfgCntr++;
-  	    if(thisIP.slice(-1) == "."){thisIP = thisIP.substr(0,thisIP.length - 1);}
-        const thisPrt = dfltPrts[Math.floor(Math.random() * dfltPrts.length)];
-        const thisIcn = dfltIcns[Math.floor(Math.random() * dfltIcns.length)];
-        const thisFp = dfltFp[Math.floor(Math.random() * dfltFp.length)]; 
-        if(globalThis.GetPath){
-  					pathForSub = fpath[Math.floor(Math.random() * fpath.length)]+"%2F"+globalThis.GetPath+"%2F%3Fed%3D2048";
-  			}
-
-    	vVvMain +=
-	     `${protocol}` +
-	     `://${globalThis.UzKey}@${thisIP}:${thisPrt}`+
-	     `?encryption=none&security=tls&sni=${globalThis.hostName}&fp=${thisFp}&allowInsecure=1&alpn=h2%2Chttp%2F1.1&type=ws&host=${globalThis.hostName}&path=%2F${pathForSub}#${CnfgCntr}%20-%20${thisIcn}%20${globalThis.CnfgName}\n`;
-
-  }
-  /*for (var thisIP of getDomainIPs.ipv6) {
-
-  }*/
-
-  vVvMain = btoa(vVvMain);
-
-return new Response(vVvMain, {
-  status: 200,
-  headers: {
-    "Content-Type": "text/plain;charset=utf-8",
-  }
-});
-}
-
-
-async function MyHomeGame(request, env) {
-      var ukeyPrt = globalThis.UzKey.split('-')[3].split('')[0];
-      var homePage;
-      switch (ukeyPrt) {
-          case "8":
-             homePage = HomeGame8();break;
-          case "9":
-             homePage = HomeGame9();break;
-          case "a":
-             homePage = HomeGamea();break;
-          default:
-             homePage = HomeGameb();
-        }
-
-	return new Response(homePage, {
-    status: 200,
-    headers: {
-      "Content-Type": "text/html;charset=utf-8",
-      "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate, no-transform",
-      "CDN-Cache-Control": "no-store"
-    }
-  });
-}
-
-///// Snake  HomeGame ////////////////////////////////////////
- function HomeGameb() {
-	const homePage = `<!DOCTYPE html>
-<html lang="en" dir="ltr">
-  <head>
-    <meta charset="utf-8">
-    <title>Snake Game</title>
-
-  <style>
-@import url(https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700&display=swap);*{margin:0;padding:0;box-sizing:border-box;font-family:"Open Sans",sans-serif}body{display:flex;align-items:center;justify-content:center;min-height:100vh;background:#e3f2fd;flex-direction:column}.footer{display:flex;flex-direction:column;justify-content:center;margin-top:15px}.wrapper{width:65vmin;height:70vmin;display:flex;overflow:hidden;flex-direction:column;justify-content:center;border-radius:5px;background:#293447;box-shadow:0 20px 40px rgba(52,87,220,.2)}.game-details{color:#b8c6dc;font-weight:500;font-size:1.2rem;padding:20px 27px;display:flex;justify-content:space-between}.play-board{height:100%;width:100%;display:grid;background:#212837;grid-template:repeat(30,1fr)/repeat(30,1fr)}.play-board .food{background:#ff003d}.play-board .head{background:#60cbff}.controls{display:none;justify-content:space-between}.controls i{padding:25px 0;text-align:center;font-size:1.3rem;color:#b8c6dc;width:calc(100% / 4);cursor:pointer;border-right:1px solid #171b26}@media screen and (max-width:800px){.wrapper{width:90vmin;height:115vmin}.game-details{font-size:1rem;padding:15px 27px}.controls{display:flex}.controls i{padding:15px 0;font-size:1rem}}
-  </style>
-
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.3.0/css/all.min.css">
-
-  </head>
-  <body>
-    <div class="wrapper">
-      <div class="game-details">
-        <span class="score">Score: 0</span>
-        <span class="high-score">High Score: 0</span>
-      </div>
-      <div class="play-board"></div>
-      <div class="controls">
-        <i data-key="ArrowLeft" class="fa-solid fa-arrow-left-long"></i>
-        <i data-key="ArrowUp" class="fa-solid fa-arrow-up-long"></i>
-        <i data-key="ArrowRight" class="fa-solid fa-arrow-right-long"></i>
-        <i data-key="ArrowDown" class="fa-solid fa-arrow-down-long"></i>
-      </div>
-    </div>
-    <div class="footer"> liMil </div>
-    <script>const playBoard=document.querySelector(".play-board"),scoreElement=document.querySelector(".score"),highScoreElement=document.querySelector(".high-score"),controls=document.querySelectorAll(".controls i");let gameOver=!1,foodX,foodY,snakeX=5,snakeY=5,velocityX=0,velocityY=0,snakeBody=[],setIntervalId,score=0,highScore=localStorage.getItem("high-score")||0;highScoreElement.innerText="High Score: "+highScore;const updateFoodPosition=()=>{foodX=Math.floor(30*Math.random())+1,foodY=Math.floor(30*Math.random())+1},handleGameOver=()=>{clearInterval(setIntervalId),alert("Game Over! Press OK to replay..."),location.reload()},changeDirection=e=>{"ArrowUp"===e.key&&1!=velocityY?(velocityX=0,velocityY=-1):"ArrowDown"===e.key&&-1!=velocityY?(velocityX=0,velocityY=1):"ArrowLeft"===e.key&&1!=velocityX?(velocityX=-1,velocityY=0):"ArrowRight"===e.key&&-1!=velocityX&&(velocityX=1,velocityY=0)};controls.forEach(e=>e.addEventListener("click",()=>changeDirection({key:e.dataset.key})));const initGame=()=>{if(gameOver)return handleGameOver();let e="<div class='food' style='grid-area: "+foodY+" / "+foodX+"'></div>";snakeX===foodX&&snakeY===foodY&&(updateFoodPosition(),snakeBody.push([foodY,foodX]),highScore=++score>=highScore?score:highScore,localStorage.setItem("high-score",highScore),scoreElement.innerText="Score: "+score,highScoreElement.innerText="High Score: "+highScore),snakeX+=velocityX,snakeY+=velocityY;for(let o=snakeBody.length-1;o>0;o--)snakeBody[o]=snakeBody[o-1];if(snakeBody[0]=[snakeX,snakeY],snakeX<=0||snakeX>30||snakeY<=0||snakeY>30)return gameOver=!0;for(let r=0;r<snakeBody.length;r++)e+="<div class='head' style='grid-area: "+snakeBody[r][1]+" / "+snakeBody[r][0]+"'></div>",0!==r&&snakeBody[0][1]===snakeBody[r][1]&&snakeBody[0][0]===snakeBody[r][0]&&(gameOver=!0);playBoard.innerHTML=e};updateFoodPosition(),setIntervalId=setInterval(initGame,100),document.addEventListener("keyup",changeDirection),highScore<4&&alert("Use \uD83D\uDF80 \uD83D\uDF81 \uD83D\uDF82 \uD83D\uDF83 on \uD83D\uDDAE to Play ...");</script>
-  </body>
-</html>`;
-    return homePage;
-}
-
-///// Block Dude  HomeGame ////////////////////////////////////////
- function HomeGamea() {
-	const homePage = `<!DOCTYPE html>
-<html>
-<head>
-  <title>Block Dude Game</title>
-  <meta charset="UTF-8">
-  <style>body,html{height:100%;margin:0}body{background:#fafafa;display:flex;flex-direction:column;align-items:center;justify-content:center}canvas{border:1px solid #fff;margin-bottom:1rem}
-  </style>
-</head>
-<body>
-<canvas width="384" height="256" id="game"></canvas>
-<div>
-  <div><b>CONTROLS</b></div>
-  <div><b>Left / Right Arrow:</b> Move left / right</div>
-  <div><b>Down Arrow:</b> Pick up or drop block</div>
-</div>
-<script>const canvas=document.getElementById("game"),context=canvas.getContext("2d"),grid=32,wallCanvas=document.createElement("canvas"),wallCtx=wallCanvas.getContext("2d");wallCanvas.width=wallCanvas.height=32,wallCtx.fillStyle="white",wallCtx.fillRect(1,1,32,32),wallCtx.fillStyle="black",wallCtx.fillRect(0,1,21,10),wallCtx.fillRect(23,1,10,10),wallCtx.fillRect(0,12,10,9),wallCtx.fillRect(11,12,21,9),wallCtx.fillRect(0,22,21,10),wallCtx.fillRect(23,22,10,10);let playerDir={row:0,col:0},playerPos={row:0,col:0},playerFacing=-1,rAF=null,carryingBlock=!1,width=0;const types={wall:"#",player:"@",block:"$",goal:".",empty:" "},level1=\`
- #    ##        ##
- #                #
-##                 #
-#.                  #
-##                   #
- #           #  $    #
- #           #$ $$@  #
- #####   #############
-     #  $#
-     #####
-\`,cells=[];function clamp(l,e,t){return Math.min(Math.max(l,t),e)}function move(l,e){let t=cells[l.row][l.col],c=cells[e.row][e.col],o=t===types.player;switch(t){case types.player:case types.block:cells[l.row][l.col]=types.empty}c===types.empty&&(cells[e.row][e.col]=o?types.player:types.block),playerFacing=e.col-l.col,carryingBlock&&(cells[l.row-1][l.col]=types.empty,cells[e.row-1][e.col]=types.block)}function loop(){rAF=requestAnimationFrame(loop),context.clearRect(0,0,canvas.width,canvas.height);let l=playerPos.row+playerDir.row,e=playerPos.col+playerDir.col,t=cells[l][e];switch(t){case types.empty:case types.goal:let c=l+1+playerDir.row,o=cells[c][e];for(;o===types.empty||o==types.goal;)o=cells[c=(l=c)+1+playerDir.row][e];move(playerPos,{row:l,col:e}),playerPos.row=l,playerPos.col=e,t===types.goal&&cancelAnimationFrame(rAF);break;case types.block:case types.wall:let a=l-1+playerDir.row,r=cells[a][e];(r===types.empty||r===types.goal)&&(move(playerPos,{row:a,col:e}),playerPos.row=a,playerPos.col=e)}playerDir={row:0,col:0},context.strokeStyle="black",context.fillStyle="black",context.lineWidth=2;let s=clamp(0,cells.length-8,playerPos.row-4),y=clamp(0,width-12,playerPos.col-6);for(let p=s;p<cells.length;p++)for(let n=y;n<cells[p].length;n++){let i=cells[p][n],w=p-s,$=n-y;switch(i){case types.wall:context.drawImage(wallCanvas,32*$,32*w);break;case types.block:context.strokeRect(32*$,32*w,32,32);break;case types.goal:context.strokeRect(($+.2)*32,32*w,20,32),context.beginPath(),context.arc(($+.7)*32,(w+.5)*32,2,0,2*Math.PI),context.fill();break;case types.player:context.beginPath(),context.arc(($+.5)*32,(w+.3)*32,7,0,2*Math.PI),context.stroke();let _=($+(playerFacing<0?.1:.6))*32;context.fillRect(_,(w+.15)*32,32/3,2),context.beginPath(),context.arc(($+.5)*32,(w+.25)*32,7,0,Math.PI,1),context.fill(),context.fillRect(($+.48)*32,(w+.4)*32,2,12.8),context.fillRect(($+.3)*32,(w+.6)*32,12.8,2),context.moveTo(($+.5)*32,(w+.8)*32),context.lineTo(($+.65)*32,(w+1)*32),context.moveTo(($+.5)*32,(w+.8)*32),context.lineTo(($+.35)*32,(w+1)*32),context.stroke()}}}level1.split("\\n").filter(l=>!!l).forEach((l,e)=>{cells[e]=[],l.length>width&&(width=l.length),l.split("").forEach((l,t)=>{cells[e][t]=l,l===types.player&&(playerPos={row:e,col:t})})}),document.addEventListener("keydown",function(l){if(playerDir={row:0,col:0},37===l.which)playerDir.col=-1;else if(39===l.which)playerDir.col=1;else if(40===l.which){let e=playerFacing+playerPos.col,t=cells[playerPos.row][e],c=cells[playerPos.row-1][e];if(cells[playerPos.row+1][e],carryingBlock||t!==types.block||c!==types.empty){if(carryingBlock){let o=playerPos.row;if(t===types.empty){let a=o-1,r=cells[a][e];for(;r===types.empty;)o=a,r=cells[++a][e]}(t===types.wall||t===types.block)&&c===types.empty&&(o-=1),cells[playerPos.row-1][playerPos.col]=types.empty,cells[o][e]=types.block,carryingBlock=!1}}else cells[playerPos.row][e]=types.empty,cells[playerPos.row-1][playerPos.col]=types.block,carryingBlock=!0}}),requestAnimationFrame(loop);
-</script>
-</body>
-</html>`;
-    return homePage;
-}
-
-/////  Tetris HomeGame ////////////////////////////////////////
- function HomeGame9() {
-	const homePage = `<!DOCTYPE html>
-<html>
-<head>
-  <title>Tetris Game</title>
-  <meta charset="UTF-8">
-  <style>body,html{height:100%;margin:0}body{background:#000;display:flex;align-items:center;justify-content:center}canvas{border:1px solid #fff}
-  </style>
-</head>
-<body>
-<canvas width="320" height="640" id="game"></canvas>
-<script>function getRandomInt(t,e){return t=Math.ceil(t),Math.floor(Math.random()*((e=Math.floor(e))-t+1))+t}function generateSequence(){let t=["I","J","L","O","S","T","Z"];for(;t.length;){let e=getRandomInt(0,t.length-1),o=t.splice(e,1)[0];tetrominoSequence.push(o)}}function getNextTetromino(){0===tetrominoSequence.length&&generateSequence();let t=tetrominoSequence.pop(),e=tetrominos[t],o=playfield[0].length/2-Math.ceil(e[0].length/2);return{name:t,matrix:e,row:"I"===t?-1:-2,col:o}}function rotate(t){let e=t.length-1,o=t.map((o,n)=>o.map((o,l)=>t[e-l][n]));return o}function isValidMove(t,e,o){for(let n=0;n<t.length;n++)for(let l=0;l<t[n].length;l++)if(t[n][l]&&(o+l<0||o+l>=playfield[0].length||e+n>=playfield.length||playfield[e+n][o+l]))return!1;return!0}function placeTetromino(){for(let t=0;t<tetromino.matrix.length;t++)for(let e=0;e<tetromino.matrix[t].length;e++)if(tetromino.matrix[t][e]){if(tetromino.row+t<0)return showGameOver();playfield[tetromino.row+t][tetromino.col+e]=tetromino.name}for(let o=playfield.length-1;o>=0;)if(playfield[o].every(t=>!!t))for(let n=o;n>=0;n--)for(let l=0;l<playfield[n].length;l++)playfield[n][l]=playfield[n-1][l];else o--;tetromino=getNextTetromino()}function showGameOver(){cancelAnimationFrame(rAF),gameOver=!0,context.fillStyle="black",context.globalAlpha=.75,context.fillRect(0,canvas.height/2-30,canvas.width,60),context.globalAlpha=1,context.fillStyle="white",context.font="36px monospace",context.textAlign="center",context.textBaseline="middle",context.fillText("GAME OVER!",canvas.width/2,canvas.height/2)}const canvas=document.getElementById("game"),context=canvas.getContext("2d"),grid=32,tetrominoSequence=[],playfield=[];for(let row=-2;row<20;row++){playfield[row]=[];for(let t=0;t<10;t++)playfield[row][t]=0}const tetrominos={I:[[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]],J:[[1,0,0],[1,1,1],[0,0,0],],L:[[0,0,1],[1,1,1],[0,0,0],],O:[[1,1],[1,1],],S:[[0,1,1],[1,1,0],[0,0,0],],Z:[[1,1,0],[0,1,1],[0,0,0],],T:[[0,1,0],[1,1,1],[0,0,0],]},colors={I:"cyan",O:"yellow",T:"purple",S:"green",Z:"red",J:"blue",L:"orange"};let count=0,tetromino=getNextTetromino(),rAF=null,gameOver=!1;function loop(){rAF=requestAnimationFrame(loop),context.clearRect(0,0,canvas.width,canvas.height);for(let t=0;t<20;t++)for(let e=0;e<10;e++)if(playfield[t][e]){let o=playfield[t][e];context.fillStyle=colors[o],context.fillRect(32*e,32*t,31,31)}if(tetromino){++count>35&&(tetromino.row++,count=0,isValidMove(tetromino.matrix,tetromino.row,tetromino.col)||(tetromino.row--,placeTetromino())),context.fillStyle=colors[tetromino.name];for(let n=0;n<tetromino.matrix.length;n++)for(let l=0;l<tetromino.matrix[n].length;l++)tetromino.matrix[n][l]&&context.fillRect((tetromino.col+l)*32,(tetromino.row+n)*32,31,31)}}document.addEventListener("keydown",function(t){if(!gameOver){if(37===t.which||39===t.which){let e=37===t.which?tetromino.col-1:tetromino.col+1;isValidMove(tetromino.matrix,tetromino.row,e)&&(tetromino.col=e)}if(38===t.which){let o=rotate(tetromino.matrix);isValidMove(o,tetromino.row,tetromino.col)&&(tetromino.matrix=o)}if(40===t.which){let n=tetromino.row+1;if(!isValidMove(tetromino.matrix,n,tetromino.col)){tetromino.row=n-1,placeTetromino();return}tetromino.row=n}}}),rAF=requestAnimationFrame(loop);
-</script>
-</body>
-</html>`;
-    return homePage;
-}
-
-/////  PingPong HomeGame ////////////////////////////////////////
- function HomeGame8() {
-	const homePage = `<!DOCTYPE html>
-<html>
-<head>
-  <title>Ping Pong HTML Game</title>
-  <meta charset="UTF-8">
-  <style>body,html{height:100%;margin:0}body{background:#000;display:flex;align-items:center;justify-content:center}
-  </style>
-</head>
-<body>
-<canvas width="750" height="585" id="game"></canvas>
-<script>const canvas=document.getElementById("game"),context=canvas.getContext("2d"),grid=15,paddleHeight=5*grid,maxPaddleY=canvas.height-grid-paddleHeight;var paddleSpeed=6,ballSpeed=5;const leftPaddle={x:2*grid,y:canvas.height/2-paddleHeight/2,width:grid,height:paddleHeight,dy:0},rightPaddle={x:canvas.width-3*grid,y:canvas.height/2-paddleHeight/2,width:grid,height:paddleHeight,dy:0},ball={x:canvas.width/2,y:canvas.height/2,width:grid,height:grid,resetting:!1,dx:ballSpeed,dy:-ballSpeed};function collides(d,l){return d.x<l.x+l.width&&d.x+d.width>l.x&&d.y<l.y+l.height&&d.y+d.height>l.y}function loop(){requestAnimationFrame(loop),context.clearRect(0,0,canvas.width,canvas.height),leftPaddle.y+=leftPaddle.dy,rightPaddle.y+=rightPaddle.dy,leftPaddle.y<grid?leftPaddle.y=grid:leftPaddle.y>maxPaddleY&&(leftPaddle.y=maxPaddleY),rightPaddle.y<grid?rightPaddle.y=grid:rightPaddle.y>maxPaddleY&&(rightPaddle.y=maxPaddleY),context.fillStyle="white",context.fillRect(leftPaddle.x,leftPaddle.y,leftPaddle.width,leftPaddle.height),context.fillRect(rightPaddle.x,rightPaddle.y,rightPaddle.width,rightPaddle.height),ball.x+=ball.dx,ball.y+=ball.dy,ball.y<grid?(ball.y=grid,ball.dy*=-1):ball.y+grid>canvas.height-grid&&(ball.y=canvas.height-2*grid,ball.dy*=-1),(ball.x<0||ball.x>canvas.width)&&!ball.resetting&&(ball.resetting=!0,setTimeout(()=>{ball.resetting=!1,ball.x=canvas.width/2,ball.y=canvas.height/2},400)),collides(ball,leftPaddle)?(ball.dx*=-1,ball.x=leftPaddle.x+leftPaddle.width):collides(ball,rightPaddle)&&(ball.dx*=-1,ball.x=rightPaddle.x-ball.width),context.fillRect(ball.x,ball.y,ball.width,ball.height),context.fillStyle="lightgrey",context.fillRect(0,0,canvas.width,grid),context.fillRect(0,canvas.height-grid,canvas.width,canvas.height);for(let d=grid;d<canvas.height-grid;d+=2*grid)context.fillRect(canvas.width/2-grid/2,d,grid,grid)}document.addEventListener("keydown",function(d){38===d.which?rightPaddle.dy=-paddleSpeed:40===d.which&&(rightPaddle.dy=paddleSpeed),87===d.which?leftPaddle.dy=-paddleSpeed:83===d.which&&(leftPaddle.dy=paddleSpeed)}),document.addEventListener("keyup",function(d){(38===d.which||40===d.which)&&(rightPaddle.dy=0),(83===d.which||87===d.which)&&(leftPaddle.dy=0)}),requestAnimationFrame(loop);
-</script>
-</body>
-</html>`;
-    return homePage;
+async function NetworkServicesHome() {
+  const page = `<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Network engineering, edge connectivity architecture, and configuration tooling.">
+<title>Network Services | Edge Connectivity</title>
+<style>
+:root{color-scheme:dark;--bg:#0b1220;--panel:#111c2e;--line:#263752;--muted:#9fb0c7;--accent:#68d4c5;--text:#edf4ff}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(900px 500px at 80% -15%,#193b53 0,transparent 60%),var(--bg);color:var(--text);font:16px/1.6 system-ui,-apple-system,Segoe UI,sans-serif}
+.wrap{width:min(1100px,92%);margin:auto}.nav{display:flex;align-items:center;justify-content:space-between;padding:24px 0;border-bottom:1px solid var(--line)}.brand{font-weight:800;letter-spacing:.04em}.brand span{color:var(--accent)}.pill{border:1px solid var(--line);padding:6px 12px;border-radius:99px;color:var(--muted);font-size:.85rem}
+.hero{padding:76px 0 56px;max-width:800px}.eyebrow{color:var(--accent);font-weight:700;text-transform:uppercase;letter-spacing:.14em;font-size:.78rem}.hero h1{font-size:clamp(2.5rem,6vw,4.7rem);line-height:1.05;margin:16px 0 20px;letter-spacing:-.04em}.hero p{font-size:1.15rem;color:var(--muted);max-width:680px}.actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:28px}.btn{display:inline-block;text-decoration:none;border-radius:10px;padding:12px 18px;font-weight:700}.primary{background:var(--accent);color:#09201f}.secondary{border:1px solid var(--line);color:var(--text)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px;padding:20px 0 60px}.card{background:linear-gradient(150deg,#142239,var(--panel));border:1px solid var(--line);border-radius:16px;padding:24px}.num{color:var(--accent);font-weight:800;font-size:.84rem}.card h2{font-size:1.2rem;margin:10px 0}.card p{color:var(--muted);margin:0}.foot{border-top:1px solid var(--line);padding:22px 0 36px;color:var(--muted);font-size:.9rem;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+</style></head><body><div class="wrap">
+<header class="nav"><div class="brand">EDGE<span>/</span>NETWORK</div><div class="pill">Network engineering services</div></header>
+<main><section class="hero"><div class="eyebrow">Connectivity • Architecture • Tooling</div><h1>Network systems, thoughtfully engineered.</h1><p>We build practical network configuration tools and edge-connectivity workflows, with an emphasis on clear parameters, reproducible profiles, and maintainable infrastructure.</p><div class="actions"><a class="btn primary" href="/${globalThis.AccessAdvancedConfig}">Open Configuration Workspace</a><a class="btn secondary" href="#services">Explore services</a></div></section>
+<section id="services" class="grid"><article class="card"><div class="num">01 / DESIGN</div><h2>Edge Connectivity</h2><p>Architecture and configuration design for modern edge and serverless connectivity.</p></article>
+<article class="card"><div class="num">02 / CONFIGURATION</div><h2>Protocol Profiles</h2><p>Parameter-driven configuration workflows with structured, repeatable outputs.</p></article>
+<article class="card"><div class="num">03 / ENGINEERING</div><h2>Network Tooling</h2><p>Utilities for organizing connection settings and preparing profiles for external testing.</p></article></section></main>
+<footer class="foot"><span>Network Services · Edge Connectivity</span><span>Configuration tools for engineering workflows</span></footer></div></body></html>`;
+  return new Response(page, {status:200,headers:{"Content-Type":"text/html;charset=utf-8","Cache-Control":"no-store"}});
 }
